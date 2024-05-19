@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +13,7 @@ class FormLight extends StatefulWidget {
 
 class _FormLightState extends State<FormLight> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  String _errorMessage = '';
 
   final TextEditingController _controllerCurrentKwFirstFloor =
       TextEditingController(text: "16607"); // Valor inicial
@@ -24,6 +28,9 @@ class _FormLightState extends State<FormLight> {
   final TextEditingController _controllerCurrentKwThridFloor =
       TextEditingController(text: "12282"); // Valor inicial
   final TextEditingController _controllerNewKwFThridFloor =
+      TextEditingController();
+
+  final TextEditingController _controllerAmountPayable =
       TextEditingController();
 
   int _resultFirstFloorTotalKW = 0;
@@ -109,7 +116,19 @@ class _FormLightState extends State<FormLight> {
     print('_resultSecondFloorTotalKW : $_resultSecondFloorTotalKW');
     print('_resultThridFloorTotalKW : $_resultThridFloorTotalKW');
 
-    if (_formKey.currentState?.validate() == true) {
+    if (_formKey.currentState?.validate() == false &&
+        _controllerAmountPayable.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Porfavor ingresa el valor del recibo a pagar';
+      });
+      return;
+    }
+
+    if (_formKey.currentState?.validate() == true &&
+        _controllerAmountPayable.text.isNotEmpty) {
+      setState(() {
+        _errorMessage = '';
+      });
       String valueOldKwFirstFloor = _controllerCurrentKwFirstFloor.text;
       String valueNewKwFirstFloor = _controllerNewKwFirstFloor.text;
 
@@ -128,6 +147,7 @@ class _FormLightState extends State<FormLight> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      color: Colors.white12,
       padding: const EdgeInsets.all(25),
       child: ListView(
         children: [
@@ -176,30 +196,20 @@ class _FormLightState extends State<FormLight> {
                       decoration: const BoxDecoration(color: Colors.black12),
                       margin: const EdgeInsets.symmetric(vertical: 25),
                     ),
-                    const Text('Ingresa el valor del Recibo a Pagar: ',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      decoration: const InputDecoration(
-                        hintText: 'Monto del recibo a pagar: (ejem: 570.80)',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+[\.\,]?\d{0,2}')),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'La suma de todos los KW de la casa es: ',
+                        ),
+                        Text(
+                          '${_resultFirstFloorTotalKW + _resultSecondFloorTotalKW + _resultThridFloorTotalKW} Kw',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Porfavor ingresa el valor del recibo a pagar';
-                        }
-                        final newValue = value.replaceAll(',', '.');
-                        if (double.tryParse(newValue) == null) {
-                          return 'Porfavor ingresa el valor del recibo a pagar';
-                        }
-                        return null;
-                      },
                     ),
                     Container(
                       width: double.maxFinite,
@@ -207,11 +217,68 @@ class _FormLightState extends State<FormLight> {
                       decoration: const BoxDecoration(color: Colors.black12),
                       margin: const EdgeInsets.symmetric(vertical: 25),
                     ),
+                    const Text('Ingresa el valor del Recibo a Pagar: ',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _submitForm,
-                      child: const Text('Submit'),
+                    CupertinoTextField(
+                      controller: _controllerAmountPayable,
+                      placeholder: 'Monto del recibo a pagar: (ejem: 570.80)',
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.white,
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(
+                          color: CupertinoColors.lightBackgroundGray,
+                          width: 1.0,
+                        ),
+                      ),
                     ),
+                    if (_errorMessage != '')
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(
+                              color: CupertinoColors.destructiveRed),
+                        ),
+                      ),
+                    // TextFormField(
+                    //   decoration: const InputDecoration(
+                    //     hintText: 'Monto del recibo a pagar: (ejem: 570.80)',
+                    //     border: OutlineInputBorder(),
+                    //   ),
+                    //   keyboardType:
+                    //       const TextInputType.numberWithOptions(decimal: true),
+                    //   inputFormatters: <TextInputFormatter>[
+                    //     FilteringTextInputFormatter.allow(
+                    //         RegExp(r'^\d+[\.\,]?\d{0,2}')),
+                    //   ],
+                    //   validator: (value) {
+                    //     if (value == null || value.isEmpty) {
+                    //       return 'Porfavor ingresa el valor del recibo a pagar';
+                    //     }
+                    //     final newValue = value.replaceAll(',', '.');
+                    //     if (double.tryParse(newValue) == null) {
+                    //       return 'Porfavor ingresa el valor del recibo a pagar';
+                    //     }
+                    //     return null;
+                    //   },
+                    // ),
+                    const SizedBox(height: 30),
+                    Platform.isIOS
+                        ? Center(
+                            child: CupertinoButton(
+                              color: CupertinoColors.activeBlue,
+                              onPressed: _submitForm,
+                              child: const Text('Realizar cuenta'),
+                            ),
+                          )
+                        : Center(
+                            child: ElevatedButton(
+                              onPressed: _submitForm,
+                              child: const Text('Realizar cuenta'),
+                            ),
+                          )
                   ],
                 ),
               ),
